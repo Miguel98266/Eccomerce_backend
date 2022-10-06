@@ -318,10 +318,15 @@ const modificarUsuario = async (req, res) => {
   const { first_name, last_name, birth, id_gender, email, password} =req.body;
   const { id } = req.params;
   const token = req.headers.authorization;
-  const {id_token}=jwt.decode(token);
+  const {id_customer}=jwt.decode(token);
+  console.log(jwt.decode(token))
   if(!ValidateEmail(email)){
-    res.status(404).send({
+    return res.status(404).send({
       data: "Por favor ingresa un Correo Electrónico válido",
+    });
+  }else if(id_customer!==id){
+    return res.status(404).send({
+      data: "El usuario no contiene suficientes permisos",
     });
   }
   try {
@@ -404,7 +409,7 @@ const loginController=async(req,res)=>{
     );
     if (dbResponse.rowCount > 0) {
       const data={
-        id:dbResponse.rows[0].id_customer,
+        id_customer:dbResponse.rows[0].id_customer,
         email:dbResponse.rows[0].email,
         rol:dbResponse.rows[0].rol_name,
       }
