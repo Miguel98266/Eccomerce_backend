@@ -132,7 +132,7 @@ const modificarCategoria = async (req, res) => {
 const obtenerTodosProductos = async (req, res) => {
   try {
     const dbResponse =
-      await connect.query(`SELECT product_name,product.description,price, category_name , brand_name,sku,product_image ,stock, avaliable FROM product
+      await connect.query(`SELECT id_product,product_name,product.description,price, category_name , brand_name,sku,product_image ,stock, avaliable FROM product
     INNER JOIN category on product.id_category=category.id_category
     INNER JOIN brand ON product.id_brand=brand.id_brand`);
     console.log(dbResponse.rows);
