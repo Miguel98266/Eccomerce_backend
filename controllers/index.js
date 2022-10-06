@@ -1,6 +1,6 @@
 const connect = require("../database");
 const jwt = require("jsonwebtoken");
-const {createToken,ValidateEmail} = require("../utils");
+const { createToken, ValidateEmail } = require("../utils");
 // req --> Recibe los datos de la peticion
 // res --> Responde al cliente
 // req,params --> Recibimos datos que llegan por la URL pero son obligatorios
@@ -131,7 +131,10 @@ const modificarCategoria = async (req, res) => {
 // Productos
 const obtenerTodosProductos = async (req, res) => {
   try {
-    const dbResponse = await connect.query("SELECT * FROM product");
+    const dbResponse =
+      await connect.query(`SELECT product_name,product.description,price, category_name , brand_name,sku,product_image ,stock, avaliable FROM product
+    INNER JOIN category on product.id_category=category.id_category
+    INNER JOIN brand ON product.id_brand=brand.id_brand`);
     console.log(dbResponse.rows);
     res.status(200).send({
       data: dbResponse.rows,
@@ -263,7 +266,8 @@ const eliminarProducto = async (req, res) => {
 // Usuarios
 const obtenerUsuarios = async (req, res) => {
   try {
-    const dbResponse = await connect.query(`select first_name,last_name,birth,gender,rol_name from customer 
+    const dbResponse =
+      await connect.query(`select first_name,last_name,birth,gender,rol_name from customer 
     INNER JOIN gender ON gender.id_gender = customer.id_gender
     INNER JOIN rol on rol.id_role = customer.id_role;`);
     console.log(dbResponse.rows);
@@ -278,9 +282,12 @@ const obtenerUsuarios = async (req, res) => {
 };
 const obtenerUsuarioActual = async (req, res) => {
   const token = req.headers.authorization;
-  const {id}=jwt.decode(token);
+  const { id_customer } = jwt.decode(token);
   try {
-    const dbResponse = await connect.query("SELECT first_name,last_name,birth,gender from customer INNER JOIN gender ON gender.id_gender = customer.id_gender WHERE id_customer=$1;",[id]);
+    const dbResponse = await connect.query(
+      "SELECT first_name,last_name,birth,gender from customer INNER JOIN gender ON gender.id_gender = customer.id_gender WHERE id_customer=$1;",
+      [id_customer]
+    );
     console.log(dbResponse.rows);
     res.status(200).send({
       data: dbResponse.rows,
@@ -294,9 +301,14 @@ const obtenerUsuarioActual = async (req, res) => {
 const crearUsuario = async (req, res) => {
   const { first_name, last_name, birth, id_gender, email, password, id_role } =
     req.body;
+  if (!ValidateEmail(email)) {
+    return res.status(404).send({
+      data: "Por favor ingresa un Correo Electrónico válido",
+    });
+  }
   try {
     const dbResponse = await connect.query(
-      "INSERT INTO customer(first_name, last_name, birth, id_gender, email,password,id_role) VALUES($1,$2,$3,$4,$5,$6,$7)",
+      "INSERT INTO customer(first_name, last_name, birth, id_gender, email,password,id_role) VALUES($1,$2,$3,$4,$5,crypt($6,gen_salt('bf')),$7)",
       [first_name, last_name, birth, id_gender, email, password, id_role]
     );
     if (dbResponse.rowCount > 0) {
@@ -315,16 +327,16 @@ const crearUsuario = async (req, res) => {
   }
 };
 const modificarUsuario = async (req, res) => {
-  const { first_name, last_name, birth, id_gender, email, password} =req.body;
+  const { first_name, last_name, birth, id_gender, email, password } = req.body;
   const { id } = req.params;
   const token = req.headers.authorization;
-  const {id_customer}=jwt.decode(token);
-  console.log(jwt.decode(token))
-  if(!ValidateEmail(email)){
+  const { id_customer } = jwt.decode(token);
+  console.log(jwt.decode(token));
+  if (!ValidateEmail(email)) {
     return res.status(404).send({
       data: "Por favor ingresa un Correo Electrónico válido",
     });
-  }else if(id_customer!==id){
+  } else if (id_customer !== id) {
     return res.status(404).send({
       data: "El usuario no contiene suficientes permisos",
     });
@@ -339,7 +351,7 @@ const modificarUsuario = async (req, res) => {
           email=$5,
           password=crypt($6,gen_salt('bf'))
           WHERE id_customer=$7`,
-      [first_name, last_name, birth, id_gender,email, password, id]
+      [first_name, last_name, birth, id_gender, email, password, id]
     );
     if (dbResponse.rowCount > 0) {
       res.status(200).send({
@@ -378,26 +390,176 @@ const eliminarUsuario = async (req, res) => {
     });
   }
 };
-// Facturas
-const obtenerFacturas = async (req, res) => {
-    const { id } = req.params;
-    try {
-      const dbResponse = await connect.query("SELECT * FROM order_products WHERE id_order=$1",[id]);
-      console.log(dbResponse.rows);
-      res.status(200).send({
-        data: dbResponse.rows,
+// Detalle Facturas
+const obtenerDetalleFacturas = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const dbResponse = await connect.query(
+      `SELECT id_order,product_name,quantity,unit_product FROM order_detail
+    INNER JOIN product ON order_detail.id_product=product.id_product WHERE id_order=$1;`,
+      [id]
+    );
+    console.log(dbResponse.rows);
+    res.status(200).send({
+      data: dbResponse.rows,
+    });
+  } catch (error) {
+    res.status(404).send({
+      error,
+    });
+  }
+};
+const crearDetalleFacturas = async (req, res) => {
+  const { id_order, id_product, quantity, unit_product } = req.body;
+  try {
+    const dbResponse = await connect.query(
+      "INSERT INTO order_detail(id_order,id_product,quantity,unit_product)values($1,$2,$3,$4);",
+      [id_order, id_product, quantity, unit_product]
+    );
+    if (dbResponse.rowCount > 0) {
+      res.status(201).send({
+        message: "Detalle de orden creado",
       });
-    } catch (error) {
-      res.status(404).send({
-        error,
+    } else {
+      res.status(409).send({
+        message: "No se pudo crear el detalle de la orden en este momento",
       });
     }
+  } catch (error) {
+    res.status(404).send({
+      error,
+    });
+  }
 };
+// Facturas
+const obtenerFacturas = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const dbResponse = await connect.query(
+      `SELECT id_customer,total,order_status.name AS Status,order_date FROM order_products
+      INNER JOIN order_status ON order_status.id_order_status=order_products.id_order_status WHERE id_order=$1`,
+      [id]
+    );
+    console.log(dbResponse.rows);
+    res.status(200).send({
+      data: dbResponse.rows,
+    });
+  } catch (error) {
+    res.status(404).send({
+      error,
+    });
+  }
+};
+const crearFactura=async(req,res)=>{
+  const { id_customer,total,id_order_status } = req.body;
+  try {
+    const dbResponse = await connect.query(
+      "INSERT INTO order_products(id_customer,total,id_order_status)values($1,$2,$3);",
+      [id_customer,total,id_order_status]
+    );
+    if (dbResponse.rowCount > 0) {
+      res.status(201).send({
+        message: "Factura creada",
+      });
+    } else {
+      res.status(409).send({
+        message: "No se pudo crear la factura en este momento",
+      });
+    }
+  } catch (error) {
+    res.status(404).send({
+      error,
+    });
+  }
+}
+const modificarFactura=async(req,res)=>{
+  const { id_order_status } = req.body;
+  const { id } = req.params;
+  try {
+    const dbResponse = await connect.query(
+      "UPDATE order_products set id_order_status=$1 WHERE id_order=$2",
+      [id_order_status, id]
+    );
+    if (dbResponse.rowCount > 0) {
+      res.status(200).send({
+        message: "Factura actualizada",
+      });
+    } else {
+      res.status(409).send({
+        message: "No se pudo actualizar la factura en este momento",
+      });
+    }
+  } catch (error) {
+    res.status(404).send({
+      error,
+    });
+  }
+}
+// Order status
+const obtenerStatus = async (req, res) => {
+  try {
+    const dbResponse = await connect.query("SELECT * from order_status");
+    console.log(dbResponse.rows);
+    res.status(200).send({
+      data: dbResponse.rows,
+    });
+  } catch (error) {
+    res.status(404).send({
+      error,
+    });
+  }
+};
+const crearStatus = async (req, res) => {
+  const { name } = req.body;
+
+  try {
+    const dbResponse = await connect.query(
+      "INSERT INTO order_status(name)values($1);",
+      [name]
+    );
+    if (dbResponse.rowCount > 0) {
+      res.status(201).send({
+        message: "Status creado",
+      });
+    } else {
+      res.status(409).send({
+        message: "No se pudo crear el status en este momento",
+      });
+    }
+  } catch (error) {
+    res.status(404).send({
+      error,
+    });
+  }
+};
+const eliminarStatus = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const dbResponse = await connect.query(
+      "Delete FROM order_status WHERE id_order_status=$1",
+      [id]
+    );
+    if (dbResponse.rowCount > 0) {
+      res.status(200).send({
+        message: "Estatus de la orden eliminado",
+      });
+    } else {
+      res.status(409).send({
+        message: "No se pudo eliminar el estatus de la orden en este momento",
+      });
+    }
+  } catch (error) {
+    res.status(400).send({
+      error,
+    });
+  }
+};
+
 // Login
-const loginController=async(req,res)=>{
-  const{email,passwordbody}= req.body;
-  console.log(ValidateEmail(email))
-  if(!ValidateEmail(email)){
+const loginController = async (req, res) => {
+  const { email, passwordbody } = req.body;
+  console.log(ValidateEmail(email));
+  if (!ValidateEmail(email)) {
     res.status(404).send({
       data: "Por favor ingresa un Correo Electrónico válido",
     });
@@ -405,15 +567,15 @@ const loginController=async(req,res)=>{
   try {
     const dbResponse = await connect.query(
       "SELECT id_customer,first_name,rol_name FROM customer INNER JOIN rol ON rol.id_role = customer.id_role WHERE email=$1 AND password = crypt($2,password)",
-      [email,passwordbody]
+      [email, passwordbody]
     );
     if (dbResponse.rowCount > 0) {
-      const data={
-        id_customer:dbResponse.rows[0].id_customer,
-        email:dbResponse.rows[0].email,
-        rol:dbResponse.rows[0].rol_name,
-      }
-      const token=createToken(data)
+      const data = {
+        id_customer: dbResponse.rows[0].id_customer,
+        email: dbResponse.rows[0].email,
+        rol: dbResponse.rows[0].rol_name,
+      };
+      const token = createToken(data);
       res.status(200).send({
         token: token,
       });
@@ -422,9 +584,7 @@ const loginController=async(req,res)=>{
         data: "Usuario o contraseña incorrectos",
       });
     }
-  } catch (error) {
-        
-  }
+  } catch (error) {}
 };
 
 module.exports = {
@@ -443,6 +603,13 @@ module.exports = {
   crearUsuario,
   modificarUsuario,
   eliminarUsuario,
+  obtenerDetalleFacturas,
+  crearDetalleFacturas,
   obtenerFacturas,
-  loginController
+  crearFactura,
+  modificarFactura,
+  obtenerStatus,
+  crearStatus,
+  eliminarStatus,
+  loginController,
 };
