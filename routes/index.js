@@ -28,8 +28,8 @@ router.put("/api/v1/brand/:id",verifyTokenAdmin, modificarMarca);
 
 // Categoria
 router.get("/api/v1/category", obtenerCategorias);
-router.post("/api/v1/category", crearCategoria);
-router.put("/api/v1/category/:id", modificarCategoria);
+router.post("/api/v1/category", verifyTokenAdmin,crearCategoria);
+router.put("/api/v1/category/:id", verifyTokenAdmin,modificarCategoria);
 
 // Productos
 router.get("/api/v1/products", obtenerTodosProductos);
