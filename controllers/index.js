@@ -298,6 +298,7 @@ const obtenerUsuarioActual = async (req, res) => {
     });
   }
 };
+
 const crearUsuario = async (req, res) => {
   const { first_name, last_name, birth, id_gender, email, password, id_role } =
     req.body;
@@ -331,13 +332,14 @@ const modificarUsuario = async (req, res) => {
   const { id } = req.params;
   const token = req.headers.authorization;
   const { id_customer } = jwt.decode(token);
-  console.log(jwt.decode(token));
+
+  console.log(jwt.decode(token), id);
   if (!ValidateEmail(email)) {
-    return res.status(404).send({
+    return res.status(409).send({
       data: "Por favor ingresa un Correo Electrónico válido",
     });
-  } else if (id_customer !== id) {
-    return res.status(404).send({
+  } else if (id_customer != id) {
+    return res.status(409).send({
       data: "El usuario no contiene suficientes permisos",
     });
   }
@@ -450,12 +452,12 @@ const obtenerFacturas = async (req, res) => {
     });
   }
 };
-const crearFactura=async(req,res)=>{
-  const { id_customer,total,id_order_status } = req.body;
+const crearFactura = async (req, res) => {
+  const { id_customer, total, id_order_status } = req.body;
   try {
     const dbResponse = await connect.query(
       "INSERT INTO order_products(id_customer,total,id_order_status)values($1,$2,$3);",
-      [id_customer,total,id_order_status]
+      [id_customer, total, id_order_status]
     );
     if (dbResponse.rowCount > 0) {
       res.status(201).send({
@@ -471,8 +473,8 @@ const crearFactura=async(req,res)=>{
       error,
     });
   }
-}
-const modificarFactura=async(req,res)=>{
+};
+const modificarFactura = async (req, res) => {
   const { id_order_status } = req.body;
   const { id } = req.params;
   try {
@@ -494,7 +496,7 @@ const modificarFactura=async(req,res)=>{
       error,
     });
   }
-}
+};
 // Order status
 const obtenerStatus = async (req, res) => {
   try {
@@ -560,7 +562,7 @@ const loginController = async (req, res) => {
   const { email, passwordbody } = req.body;
   console.log(ValidateEmail(email));
   if (!ValidateEmail(email)) {
-    res.status(404).send({
+    res.status(409).send({
       data: "Por favor ingresa un Correo Electrónico válido",
     });
   }

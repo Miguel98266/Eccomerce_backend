@@ -1,6 +1,6 @@
 const { Router } = require("express");
 const router = Router();
-const {verifyTokenAdmin}=require("../middleware");
+const {verifyTokenAdmin,validateemailexiste}=require("../middleware");
 const {
   crearMarca,
   obtenerMarcas,
@@ -26,6 +26,7 @@ const {
   crearStatus,
   eliminarStatus,
   loginController,
+  
 } = require("../controllers");
 
 // Marca
@@ -46,9 +47,9 @@ router.put("/api/v1/products/:id", verifyTokenAdmin, modificarProducto);
 
 // Usuarios
 router.get("/api/v1/users", verifyTokenAdmin,obtenerUsuarios);
-router.post("/api/v1/users", crearUsuario);
+router.post("/api/v1/users" ,validateemailexiste,crearUsuario);
 router.get("/api/v1/users/me", obtenerUsuarioActual);
-router.patch("/api/v1/users/:id",verifyTokenAdmin, modificarUsuario);
+router.patch("/api/v1/users/:id",verifyTokenAdmin,validateemailexiste, modificarUsuario);
 router.delete("/api/v1/users/:id", verifyTokenAdmin,eliminarUsuario);
 
 

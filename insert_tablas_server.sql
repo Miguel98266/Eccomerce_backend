@@ -20,6 +20,7 @@ INSERT INTO customer(first_name,last_name,birth,id_gender,email,password,id_role
 
 SELECT * FROM customer;
 delete from customer where id_customer=3;
+Select * customer WHERE email='angeles@gmail.com'
 select first_name,last_name,birth,gender,rol_name from customer 
 INNER JOIN gender ON gender.id_gender = customer.id_gender
 INNER JOIN rol on rol.id_role = customer.id_role;
