@@ -285,7 +285,7 @@ const obtenerUsuarioActual = async (req, res) => {
   const { id_customer } = jwt.decode(token);
   try {
     const dbResponse = await connect.query(
-      "SELECT first_name,last_name,TO_CHAR(birth, 'DD-MM-YYYY'),gender,email from customer INNER JOIN gender ON gender.id_gender = customer.id_gender WHERE id_customer=$1;",
+      "SELECT first_name,last_name,TO_CHAR(birth, 'DD-MM-YYYY') as birth ,gender,email from customer INNER JOIN gender ON gender.id_gender = customer.id_gender WHERE id_customer=$1;",
       [id_customer]
     );
     console.log(dbResponse.rows);
